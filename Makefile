@@ -44,9 +44,12 @@ build: setup
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug CODE_SIGN_IDENTITY="" build
 
 # Build for local use without Apple Developer certificate
+LOCAL_DERIVED_DATA := $(CURDIR)/.build/DerivedData
+
 local: check setup
 	@echo "Building VoiceInk for local use (no Apple Developer certificate required)..."
 	xcodebuild -project VoiceInk.xcodeproj -scheme VoiceInk -configuration Debug \
+		-derivedDataPath $(LOCAL_DERIVED_DATA) \
 		-xcconfig LocalBuild.xcconfig \
 		CODE_SIGN_IDENTITY="-" \
 		CODE_SIGNING_REQUIRED=NO \
@@ -55,8 +58,8 @@ local: check setup
 		CODE_SIGN_ENTITLEMENTS=$(CURDIR)/VoiceInk/VoiceInk.local.entitlements \
 		SWIFT_ACTIVE_COMPILATION_CONDITIONS='$$(inherited) LOCAL_BUILD' \
 		build
-	@APP_PATH=$$(find "$$HOME/Library/Developer/Xcode/DerivedData" -name "VoiceInk.app" -path "*/Debug/*" -type d | head -1) && \
-	if [ -n "$$APP_PATH" ]; then \
+	@APP_PATH="$(LOCAL_DERIVED_DATA)/Build/Products/Debug/VoiceInk.app" && \
+	if [ -d "$$APP_PATH" ]; then \
 		echo "Copying VoiceInk.app to ~/Downloads..."; \
 		rm -rf "$$HOME/Downloads/VoiceInk.app"; \
 		ditto "$$APP_PATH" "$$HOME/Downloads/VoiceInk.app"; \
@@ -94,6 +97,7 @@ run:
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(DEPS_DIR)
+	@rm -rf $(CURDIR)/.build
 	@echo "Clean complete"
 
 # Help
