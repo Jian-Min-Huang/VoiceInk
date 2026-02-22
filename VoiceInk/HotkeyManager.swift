@@ -56,6 +56,10 @@ class HotkeyManager: ObservableObject {
     private var globalEventMonitor: Any?
     private var localEventMonitor: Any?
     
+    // NSEvent monitoring for regular keys (e.g. End)
+    private var regularKeyGlobalMonitor: Any?
+    private var regularKeyLocalMonitor: Any?
+    
     // Middle-click event monitoring
     private var middleClickMonitors: [Any?] = []
     private var middleClickTask: Task<Void, Never>?
@@ -87,6 +91,7 @@ class HotkeyManager: ObservableObject {
         case fn = "fn"
         case rightCommand = "rightCommand"
         case rightShift = "rightShift"
+        case end = "end"
         case custom = "custom"
         
         var displayName: String {
@@ -99,6 +104,7 @@ class HotkeyManager: ObservableObject {
             case .fn: return "Fn"
             case .rightCommand: return "Right Command (⌘)"
             case .rightShift: return "Right Shift (⇧)"
+            case .end: return "End"
             case .custom: return "Custom"
             }
         }
@@ -112,12 +118,20 @@ class HotkeyManager: ObservableObject {
             case .fn: return 0x3F
             case .rightCommand: return 0x36
             case .rightShift: return 0x3C
+            case .end: return 0x77
             case .custom, .none: return nil
             }
         }
         
         var isModifierKey: Bool {
-            return self != .custom && self != .none
+            switch self {
+            case .custom, .none, .end: return false
+            default: return true
+            }
+        }
+        
+        var isRegularKey: Bool {
+            return self == .end
         }
     }
     
@@ -173,8 +187,38 @@ class HotkeyManager: ObservableObject {
         removeAllMonitoring()
         
         setupModifierKeyMonitoring()
+        setupRegularKeyMonitoring()
         setupCustomShortcutMonitoring()
         setupMiddleClickMonitoring()
+    }
+    
+    private func setupRegularKeyMonitoring() {
+        guard selectedHotkey1.isRegularKey || selectedHotkey2.isRegularKey else { return }
+        
+        regularKeyGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            guard let self = self else { return }
+            Task { @MainActor in
+                await self.handleRegularKeyEvent(event)
+            }
+        }
+        
+        regularKeyLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
+            guard let self = self else { return event }
+            Task { @MainActor in
+                await self.handleRegularKeyEvent(event)
+            }
+            return event
+        }
+    }
+    
+    private func handleRegularKeyEvent(_ event: NSEvent) async {
+        let keycode = event.keyCode
+        let isHotkey1Match = selectedHotkey1.isRegularKey && selectedHotkey1.keyCode == keycode
+        let isHotkey2Match = selectedHotkey2.isRegularKey && selectedHotkey2.keyCode == keycode
+        guard isHotkey1Match || isHotkey2Match else { return }
+        
+        let isKeyPressed = event.type == .keyDown
+        await processKeyPress(isKeyPressed: isKeyPressed, eventTime: event.timestamp)
     }
     
     private func setupModifierKeyMonitoring() {
@@ -265,6 +309,16 @@ class HotkeyManager: ObservableObject {
             localEventMonitor = nil
         }
         
+        if let monitor = regularKeyGlobalMonitor {
+            NSEvent.removeMonitor(monitor)
+            regularKeyGlobalMonitor = nil
+        }
+        
+        if let monitor = regularKeyLocalMonitor {
+            NSEvent.removeMonitor(monitor)
+            regularKeyLocalMonitor = nil
+        }
+        
         for monitor in middleClickMonitors {
             if let monitor = monitor {
                 NSEvent.removeMonitor(monitor)
@@ -324,7 +378,7 @@ class HotkeyManager: ObservableObject {
             isKeyPressed = flags.contains(.command)
         case .rightShift:
             isKeyPressed = flags.contains(.shift)
-        case .custom, .none:
+        case .end, .custom, .none:
             return // Should not reach here
         }
 
