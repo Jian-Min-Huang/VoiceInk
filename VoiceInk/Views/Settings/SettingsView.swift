@@ -233,15 +233,6 @@ struct SettingsView: View {
                 }
             }
 
-            // MARK: - Privacy
-            Section {
-                AudioCleanupSettingsView()
-            } header: {
-                Text("Privacy")
-            } footer: {
-                Text("Control how VoiceInk handles your transcription data and audio recordings.")
-            }
-
             // MARK: - Diagnostics
             Section("Diagnostics") {
                 DiagnosticsSettingsView()

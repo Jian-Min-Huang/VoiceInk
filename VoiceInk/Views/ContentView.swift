@@ -59,12 +59,15 @@ struct ContentView: View {
     @EnvironmentObject private var whisperState: WhisperState
     @EnvironmentObject private var hotkeyManager: HotkeyManager
     @AppStorage("powerModeUIFlag") private var powerModeUIFlag = false
-    @State private var selectedView: ViewType? = .metrics
+    @State private var selectedView: ViewType? = .models
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
     @StateObject private var licenseViewModel = LicenseViewModel()
 
     private var visibleViewTypes: [ViewType] {
         ViewType.allCases.filter { viewType in
+            if viewType == .metrics || viewType == .history {
+                return false
+            }
             if viewType == .powerMode {
                 return powerModeUIFlag
             }

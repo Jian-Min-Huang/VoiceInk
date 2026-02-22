@@ -27,8 +27,8 @@ enum AppDefaults {
             "RecorderType": "mini",
 
             // Cleanup
-            "IsTranscriptionCleanupEnabled": false,
-            "TranscriptionRetentionMinutes": 1440,
+            "IsTranscriptionCleanupEnabled": true,
+            "TranscriptionRetentionMinutes": 0,
             "IsAudioCleanupEnabled": false,
             "AudioRetentionPeriod": 7,
 
