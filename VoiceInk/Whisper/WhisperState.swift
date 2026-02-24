@@ -450,7 +450,7 @@ class WhisperState: NSObject, ObservableObject {
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                CursorPaster.pasteAtCursor(textToPaste + " ")
+                CursorPaster.pasteAtCursor("🗣️ " + textToPaste)
 
                 let powerMode = PowerModeManager.shared
                 if let activeConfig = powerMode.currentActiveConfiguration, activeConfig.isAutoSendEnabled {
