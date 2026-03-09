@@ -380,6 +380,10 @@ class WhisperState: NSObject, ObservableObject {
             text = WordReplacementService.shared.applyReplacements(to: text, using: modelContext)
             logger.notice("📝 WordReplacement: \(text, privacy: .public)")
 
+            if text.hasSuffix("，") || text.hasSuffix("。") {
+                text = String(text.dropLast())
+            }
+
             let audioAsset = AVURLAsset(url: url)
             let actualDuration = (try? CMTimeGetSeconds(await audioAsset.load(.duration))) ?? 0.0
             
